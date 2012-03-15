@@ -1,5 +1,8 @@
 Need to change into a jQuery plugin.
 Support multiple roots
+
+
+Actually, don't do this:
 Do some URL rewriting on the root. So if there's a special attr set then get the path of the data-src, and append it to the refresher URL. IE
 
 <div data-base-src="http://localhost/cache_tree/">
@@ -9,3 +12,5 @@ Do some URL rewriting on the root. So if there's a special attr set then get the
 When #something gets invalidated it will call out to 
 
 http://localhost/cache_tree/foo/bar
+
+Too much logic being put into the cache tree. Whatever is caching should provide the right URL to call back if needed.
