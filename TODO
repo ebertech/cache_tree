@@ -1,0 +1,11 @@
+Need to change into a jQuery plugin.
+Support multiple roots
+Do some URL rewriting on the root. So if there's a special attr set then get the path of the data-src, and append it to the refresher URL. IE
+
+<div data-base-src="http://localhost/cache_tree/">
+	<data data-id="something" data-src="http://somewhere.com/foo/bar"/>
+</div>
+
+When #something gets invalidated it will call out to 
+
+http://localhost/cache_tree/foo/bar
