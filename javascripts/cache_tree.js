@@ -21,11 +21,22 @@ function addListeners(node) {
 		if(dataSrc){
 			var siteUrl = url.parse(dataSrc);
 			var site = http.createClient(siteUrl.port, siteUrl.host);
+			var retries = 5;
 			site.on('error', function(err) {
 				console.log('unable to connect to ' + dataSrc);
+				if(retries > 0) {
+					retries -= 1;		
+					var retryTime = -4 * retries + 20;
+					console.log("retrying in " + retryTime + " second");
+					setTimeout(function(){
+						console.log("retrying... " + dataSrc);
+						site.request("GET", siteUrl.pathname, {'host' : siteUrl.host}).end();
+					}, retryTime * 1000);								
+				} else {
+					console.log("giving up on " + dataSrc);
+				}
 			});
-			var request = site.request("GET", siteUrl.pathname, {'host' : siteUrl.host})
-			request.end();
+			site.request("GET", siteUrl.pathname, {'host' : siteUrl.host}).end();
 		}
 		if(self.parent()[0] == root[0]){
 			self.remove();
@@ -102,7 +113,10 @@ var router = bee.route({ // Create a new router
 			renderSuccess(res, "OK");
 		},
 		"DELETE": function(req, res) {
-			root.trigger("remove", [url.parse(req.url, true).query.id])
+			req.addListener('end', function() {
+				root.trigger("remove", [url.parse(req.url, true).query.id]);
+			});			
+			
 			renderSuccess(res, "OK");
 		}
 	}
