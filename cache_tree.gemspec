@@ -14,4 +14,6 @@ Gem::Specification.new do |gem|
   gem.name          = "cache_tree"
   gem.require_paths = ["lib"]
   gem.version       = CacheTree::VERSION
+  
+  gem.add_runtime_dependency 'json'
 end
