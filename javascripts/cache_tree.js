@@ -78,7 +78,7 @@ root.on("uncache", "*", function(event){
 		site.on('error', function(err) {
 			console.log('unable to connect to ' + dataSrc);
 			if(retries > 0) {
-				retries -= 1;		
+				retries -= 1;
 				var retryTime = -4 * retries + 20;
 				console.log("retrying in " + retryTime + " second");
 				setTimeout(function(){
@@ -88,7 +88,7 @@ root.on("uncache", "*", function(event){
 					request.on('response', function(res) {
 					       console.log("done " + currentCounter + " " + dataSrc);
 					    });
-					}, retryTime * 1000);								
+					}, retryTime * 1000);
 				} else {
 				console.log("giving up on " + currentCounter + " " + dataSrc);
 				}
@@ -97,7 +97,7 @@ root.on("uncache", "*", function(event){
 			request.end();
 			request.on('response', function(res) {
 			        console.log("done " + currentCounter + " " + dataSrc);
-			    });			
+			    });	
 		}
 		if(isRoot(self.parent())){
 			self.remove();
@@ -113,11 +113,12 @@ function renderSuccess(res, text) {
 var router = bee.route({ // Create a new router
 	"/": {
 		"GET": function(req, res) {
-			renderSuccess(res, $("body").html());
+			req.addListener('end', function() {
+				renderSuccess(res, $("body").html());
+			});
 		},
 		"POST": function(req, res) {
 			var data = '';
-			var parsedData = null;
 			req.addListener('data', function(chunk) { data += chunk; });
 			req.addListener('end', function() {
 				root.trigger("cache", [JSON.parse(data)]);
@@ -128,8 +129,7 @@ var router = bee.route({ // Create a new router
 		"DELETE": function(req, res) {
 			req.addListener('end', function() {
 				root.trigger("remove", [url.parse(req.url, true).query.id]);
-			});			
-			
+			});
 			renderSuccess(res, "OK");
 		}
 	}
