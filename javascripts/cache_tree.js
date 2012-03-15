@@ -2,6 +2,33 @@ var bee = require("beeline");
 var http = require('http');
 var $ = require('jquery'); 
 var url = require('url');
+var memcache = require('memcache');
+
+var memcacheClient = new memcache.Client
+memcacheClient.port = 11211;
+memcacheClient.host = 'localhost';
+
+memcacheClient.on('connect', function(){
+	console.log("memcached connected");
+});
+
+memcacheClient.on('close', function(){
+	console.log("memcached closed connection");
+	memcacheClient = null;
+});
+
+memcacheClient.on('timeout', function(){
+	console.log("memcached timeout");
+	memcacheClient = null;
+
+});
+
+memcacheClient.on('error', function(e){
+	console.log("memcached error");
+	memcacheClient = null;
+});
+
+memcacheClient.connect();
 
 var requestCounter = 0;
 
@@ -70,6 +97,16 @@ root.bind("remove", function(event, id){
 root.on("uncache", "*", function(event){
 	var self = $(event.currentTarget);
 	var dataSrc = self.attr("data-src"); 
+	var id = self.attr("data-id"); 	
+	if(memcacheClient) {
+		memcacheClient.delete(id, function(error, result){
+			if(error) {
+				console.log("Got error deleting " + id + " from memcached: " + error);
+			} else {
+				console.log("deleted " + id + " from memcached: " + result);
+			}
+		});
+	}
 	if(dataSrc){
 		var siteUrl = url.parse(dataSrc);
 		var site = http.createClient(siteUrl.port, siteUrl.host);
