@@ -15,7 +15,7 @@ function getObjectClassName(object) {
 
 var root = $("body > div");
 
-function buildNode(name) {
+function buildNode(parent, name) {
 	var childNode = $("<div>");	
 	var parts = name.split("@");
 	
@@ -24,6 +24,12 @@ function buildNode(name) {
 	if(parts[1]) {
 		childNode.attr("data-src", parts[1]);
 	}
+	
+	if(isRoot(parent)) {
+		parent.children("*[data-id=" + id +"]").remove();
+	}
+	
+	childNode.appendTo(parent);	
 
 	return childNode;
 }
@@ -32,9 +38,7 @@ function addToCache(node, tree) {
 	if(getObjectClassName(tree) == "Object") {
 		for(var child in tree) {
 			if(tree.hasOwnProperty(child)) {				
-				var childNode = buildNode(child);
-				childNode.appendTo(node);
-				addToCache(childNode, tree[child]);
+				addToCache(buildNode(node, child), tree[child]);
 			}
 		}	
 	} else if(getObjectClassName(tree) == "Array") {
@@ -44,9 +48,12 @@ function addToCache(node, tree) {
 			}
 		}
 	} else {
-		var childNode = buildNode(tree.toString());
-		childNode.appendTo(node);
+		buildNode(node, tree.toString())
 	}
+}
+
+function isRoot(node){
+	return node[0] == root[0];
 }
 
 root.bind("cache", function(event, tree){
@@ -92,7 +99,7 @@ root.on("uncache", "*", function(event){
 			        console.log("done " + currentCounter + " " + dataSrc);
 			    });			
 		}
-		if(self.parent()[0] == root[0]){
+		if(isRoot(self.parent())){
 			self.remove();
 		}
 	});
