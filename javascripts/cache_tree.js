@@ -3,6 +3,8 @@ var http = require('http');
 var $ = require('jquery'); 
 var url = require('url');
 
+var requestCounter = 0;
+
 $("<div>").appendTo("body"); 
 
 function getObjectClassName(object) { 
@@ -12,37 +14,6 @@ function getObjectClassName(object) {
 };
 
 var root = $("body > div");
-
-function addListeners(node) {
-	node.bind("uncache", function(event)
-	{
-		var self = $(event.currentTarget);
-		var dataSrc = self.attr("data-src"); 
-		if(dataSrc){
-			var siteUrl = url.parse(dataSrc);
-			var site = http.createClient(siteUrl.port, siteUrl.host);
-			var retries = 5;
-			site.on('error', function(err) {
-				console.log('unable to connect to ' + dataSrc);
-				if(retries > 0) {
-					retries -= 1;		
-					var retryTime = -4 * retries + 20;
-					console.log("retrying in " + retryTime + " second");
-					setTimeout(function(){
-						console.log("retrying... " + dataSrc);
-						site.request("GET", siteUrl.pathname, {'host' : siteUrl.host}).end();
-					}, retryTime * 1000);								
-				} else {
-					console.log("giving up on " + dataSrc);
-				}
-			});
-			site.request("GET", siteUrl.pathname, {'host' : siteUrl.host}).end();
-		}
-		if(self.parent()[0] == root[0]){
-			self.remove();
-		}
-	});	
-}
 
 function buildNode(name) {
 	var childNode = $("<div>");	
@@ -63,7 +34,6 @@ function addToCache(node, tree) {
 			if(tree.hasOwnProperty(child)) {				
 				var childNode = buildNode(child);
 				childNode.appendTo(node);
-				addListeners(childNode);
 				addToCache(childNode, tree[child]);
 			}
 		}	
@@ -76,7 +46,6 @@ function addToCache(node, tree) {
 	} else {
 		var childNode = buildNode(tree.toString());
 		childNode.appendTo(node);
-		addListeners(childNode);		
 	}
 }
 
@@ -90,6 +59,43 @@ root.bind("remove", function(event, id){
 		$("*[data-id=" + id + "]").trigger("uncache", id);
 	}
 });
+
+root.on("uncache", "*", function(event){
+	var self = $(event.currentTarget);
+	var dataSrc = self.attr("data-src"); 
+	if(dataSrc){
+		var siteUrl = url.parse(dataSrc);
+		var site = http.createClient(siteUrl.port, siteUrl.host);
+		var retries = 5;
+		var currentCounter = requestCounter++;
+		site.on('error', function(err) {
+			console.log('unable to connect to ' + dataSrc);
+			if(retries > 0) {
+				retries -= 1;		
+				var retryTime = -4 * retries + 20;
+				console.log("retrying in " + retryTime + " second");
+				setTimeout(function(){
+					console.log("retrying " + currentCounter + " " + dataSrc);
+					var request = site.request("GET", siteUrl.pathname, {'host' : siteUrl.host});
+					request.end();
+					request.on('response', function(res) {
+					       console.log("done " + currentCounter + " " + dataSrc);
+					    });
+					}, retryTime * 1000);								
+				} else {
+				console.log("giving up on " + currentCounter + " " + dataSrc);
+				}
+			});
+			var request = site.request("GET", siteUrl.pathname, {'host' : siteUrl.host});
+			request.end();
+			request.on('response', function(res) {
+			        console.log("done " + currentCounter + " " + dataSrc);
+			    });			
+		}
+		if(self.parent()[0] == root[0]){
+			self.remove();
+		}
+	});
 
 function renderSuccess(res, text) {
 	res.writeHead(200, {'Content-Type': 'text/plain'});	
