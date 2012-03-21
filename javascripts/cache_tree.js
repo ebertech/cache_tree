@@ -3,6 +3,8 @@ var http = require('http');
 var $ = require('jquery');
 var url = require('url');
 var memcache = require('memcache');
+var Log = require('log')
+  , log = new Log('info');
 
 var memcacheClient = new memcache.Client();
 
@@ -10,21 +12,21 @@ memcacheClient.port = 11211;
 memcacheClient.host = 'localhost';
 
 memcacheClient.on('connect', function() {
-    console.log("memcached connected");
+    log.info("memcached connected");
 });
 
 memcacheClient.on('close', function() {
-    console.log("memcached closed connection");
+    log.info("memcached closed connection");
     memcacheClient = null;
 });
 
 memcacheClient.on('timeout', function() {
-    console.log("memcached timeout");
+    log.info("memcached timeout");
     memcacheClient = null;
 });
 
 memcacheClient.on('error', function(e) {
-    console.log("memcached error");
+    console.error("memcached error");
     memcacheClient = null;
 });
 
@@ -100,9 +102,9 @@ root.on("uncache", "*", function(event) {
     if(memcacheClient) {
         memcacheClient.delete(id, function(error, result) {
             if(error) {
-                console.log("Got error deleting " + id + " from memcached: " + error);
+                log.error("Could not delete '" + id + "' from memcached: " + error);
             } else {
-                console.log("deleted " + id + " from memcached: " + result);
+                log.info("Deleted '" + id + "' from memcached: " + result);
             }
         });
     }
@@ -111,26 +113,26 @@ root.on("uncache", "*", function(event) {
 root.on("uncache", "*", function(event) {
 	function errorHandler(jqXHR, textStatus, errorThrown) {
 		if(jqXHR.status >= 400) {
-			console.log('error getting ' + dataSrc + " : " + jqXHR.status);
+			log.error('error getting ' + dataSrc + " : " + jqXHR.status);
 			if(retries > 0) {
 				retries -= 1;
 				var retryTime = -4 * retries + 20;
-				console.log("retrying in " + retryTime + " second");
+				log.info("retrying in " + retryTime + " second");
 				setTimeout(function() {
-					console.log("retrying " + currentCounter + " " + dataSrc);
+					log.info("retrying " + currentCounter + " " + dataSrc);
 					$.ajax(dataSrc, {
 						error: errorHandler,
 						complete: completeHandler
 					})
 				}, retryTime * 1000);
 			} else {
-				console.log("giving up on " + currentCounter + " " + dataSrc);
+				log.error("giving up on " + currentCounter + " " + dataSrc);
 			}
 		}
 	};
 	
 	function completeHandler(jqXHR, textStatus) {
-		console.log("Finished[" + requestCounter + "]: " + dataSrc);
+		log.info("Finished[" + requestCounter + "]: " + dataSrc);
 	}
 	
 	var self = $(event.currentTarget);
@@ -186,4 +188,4 @@ var router = bee.route({ // Create a new router
 });
 var port = 3030;
 http.createServer(router).listen(port);
-console.log("CacheTree is listening on " + port);
+log.info("CacheTree is listening on " + port);
